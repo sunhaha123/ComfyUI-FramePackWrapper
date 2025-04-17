@@ -1,82 +1,9 @@
 {
   "id": "ce2cb810-7775-4564-8928-dd5bed1053cd",
   "revision": 0,
-  "last_node_id": 29,
-  "last_link_id": 44,
+  "last_node_id": 34,
+  "last_link_id": 70,
   "nodes": [
-    {
-      "id": 12,
-      "type": "VAELoader",
-      "pos": [
-        934.488525390625,
-        110.97966766357422
-      ],
-      "size": [
-        469.0488586425781,
-        58
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            22,
-            39
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.28",
-        "Node name for S&R": "VAELoader"
-      },
-      "widgets_values": [
-        "hyvid\\hunyuan_video_vae_bf16_repack.safetensors"
-      ]
-    },
-    {
-      "id": 15,
-      "type": "ConditioningZeroOut",
-      "pos": [
-        1416.453857421875,
-        536.1906127929688
-      ],
-      "size": [
-        317.4000244140625,
-        26
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 9,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "conditioning",
-          "type": "CONDITIONING",
-          "link": 14
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "links": [
-            41
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.28",
-        "Node name for S&R": "ConditioningZeroOut"
-      },
-      "widgets_values": []
-    },
     {
       "id": 19,
       "type": "LoadImage",
@@ -89,7 +16,7 @@
         314
       ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -129,7 +56,7 @@
         130
       ],
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -167,7 +94,7 @@
         58
       ],
       "flags": {},
-      "order": 3,
+      "order": 2,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -191,66 +118,48 @@
       "bgcolor": "#3f5159"
     },
     {
-      "id": 24,
-      "type": "GetImageSizeAndCount",
+      "id": 27,
+      "type": "FramePackTorchCompileSettings",
       "pos": [
-        2347.95458984375,
-        63.233543395996094
+        528.2340087890625,
+        -143.91505432128906
       ],
       "size": [
-        277.20001220703125,
-        86
+        531.5999755859375,
+        202
       ],
       "flags": {},
-      "order": 11,
+      "order": 3,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 43
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
-          "name": "image",
-          "type": "IMAGE",
-          "links": [
-            33
-          ]
-        },
-        {
-          "label": "512 width",
-          "name": "width",
-          "type": "INT",
-          "links": null
-        },
-        {
-          "label": "512 height",
-          "name": "height",
-          "type": "INT",
-          "links": null
-        },
-        {
-          "label": "37 count",
-          "name": "count",
-          "type": "INT",
-          "links": null
+          "name": "torch_compile_args",
+          "type": "FRAMEPACKCOMPILEARGS",
+          "links": []
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "8ecf5cd05e0a1012087b0da90eea9a13674668db",
-        "Node name for S&R": "GetImageSizeAndCount"
+        "aux_id": "lllyasviel/FramePack",
+        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
+        "Node name for S&R": "FramePackTorchCompileSettings"
       },
-      "widgets_values": []
+      "widgets_values": [
+        "inductor",
+        false,
+        "default",
+        false,
+        64,
+        true,
+        true
+      ]
     },
     {
       "id": 23,
       "type": "VHS_VideoCombine",
       "pos": [
-        2683.978515625,
-        61.43181228637695
+        2894.454833984375,
+        27.85390281677246
       ],
       "size": [
         576.0077514648438,
@@ -263,7 +172,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 33
+          "link": 63
         },
         {
           "name": "audio",
@@ -311,110 +220,30 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "FramePack_00002.mp4",
+            "filename": "FramePack_00009.mp4",
             "subfolder": "",
             "type": "temp",
             "format": "video/h264-mp4",
             "frame_rate": 24,
-            "workflow": "FramePack_00002.png",
-            "fullpath": "N:\\AI\\ComfyUI\\temp\\FramePack_00002.mp4"
+            "workflow": "FramePack_00009.png",
+            "fullpath": "N:\\AI\\ComfyUI\\temp\\FramePack_00009.mp4"
           }
         }
       }
     },
     {
-      "id": 27,
-      "type": "FramePackTorchCompileSettings",
-      "pos": [
-        528.2340087890625,
-        -143.91505432128906
-      ],
-      "size": [
-        531.5999755859375,
-        202
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "torch_compile_args",
-          "type": "FRAMEPACKCOMPILEARGS",
-          "links": []
-        }
-      ],
-      "properties": {
-        "aux_id": "lllyasviel/FramePack",
-        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
-        "Node name for S&R": "FramePackTorchCompileSettings"
-      },
-      "widgets_values": [
-        "inductor",
-        false,
-        "default",
-        false,
-        64,
-        true,
-        true
-      ]
-    },
-    {
-      "id": 28,
-      "type": "DownloadAndLoadFramePackModel",
-      "pos": [
-        1189.47314453125,
-        -124.0959243774414
-      ],
-      "size": [
-        315,
-        130
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "compile_args",
-          "shape": 7,
-          "type": "FRAMEPACKCOMPILEARGS",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "FramePackMODEL",
-          "links": [
-            38
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "lllyasviel/FramePack",
-        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
-        "Node name for S&R": "DownloadAndLoadFramePackModel"
-      },
-      "widgets_values": [
-        "lllyasviel/FramePackI2V_HY",
-        "bf16",
-        "fp8_e4m3fn",
-        "sdpa"
-      ]
-    },
-    {
       "id": 20,
       "type": "VAEEncode",
       "pos": [
-        1487.6229248046875,
-        172.23907470703125
+        1330.871826171875,
+        738.886474609375
       ],
       "size": [
         210,
         46
       ],
       "flags": {},
-      "order": 6,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -433,7 +262,7 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            40
+            68
           ]
         }
       ],
@@ -450,15 +279,15 @@
       "id": 14,
       "type": "CLIPTextEncode",
       "pos": [
-        1115.5635986328125,
-        281.24420166015625
+        1217.362060546875,
+        197.46319580078125
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 7,
+      "order": 6,
       "mode": 0,
       "inputs": [
         {
@@ -473,7 +302,7 @@
           "type": "CONDITIONING",
           "links": [
             14,
-            42
+            65
           ]
         }
       ],
@@ -489,81 +318,45 @@
       "bgcolor": "#353"
     },
     {
-      "id": 29,
-      "type": "FramePackSampler",
+      "id": 15,
+      "type": "ConditioningZeroOut",
       "pos": [
-        1786.7501220703125,
-        -5.181013584136963
+        1432.6693115234375,
+        444.3016662597656
       ],
       "size": [
-        380.4000244140625,
-        796.4000244140625
+        317.4000244140625,
+        26
       ],
-      "flags": {},
-      "order": 10,
+      "flags": {
+        "collapsed": true
+      },
+      "order": 9,
       "mode": 0,
       "inputs": [
         {
-          "name": "model",
-          "type": "FramePackMODEL",
-          "link": 38
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 39
-        },
-        {
-          "name": "positive",
+          "name": "conditioning",
           "type": "CONDITIONING",
-          "link": 42
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 41
-        },
-        {
-          "name": "image_embeds",
-          "type": "CLIP_VISION_OUTPUT",
-          "link": 44
-        },
-        {
-          "name": "samples",
-          "shape": 7,
-          "type": "LATENT",
-          "link": 40
+          "link": 14
         }
       ],
       "outputs": [
         {
-          "name": "images",
-          "type": "IMAGE",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
           "links": [
-            43
+            66
           ]
         }
       ],
       "properties": {
-        "aux_id": "lllyasviel/FramePack",
-        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
-        "Node name for S&R": "FramePackSampler"
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "ConditioningZeroOut"
       },
-      "widgets_values": [
-        30,
-        true,
-        0.15,
-        1,
-        10,
-        5,
-        0,
-        "fixed",
-        9,
-        1,
-        6,
-        "unipc",
-        ""
-      ]
+      "widgets_values": [],
+      "color": "#332922",
+      "bgcolor": "#593930"
     },
     {
       "id": 17,
@@ -577,7 +370,7 @@
         78
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -596,7 +389,7 @@
           "name": "CLIP_VISION_OUTPUT",
           "type": "CLIP_VISION_OUTPUT",
           "links": [
-            44
+            67
           ]
         }
       ],
@@ -607,7 +400,211 @@
       },
       "widgets_values": [
         "center"
+      ],
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 34,
+      "type": "FramePackSampler",
+      "pos": [
+        1812.875244140625,
+        199.3166046142578
+      ],
+      "size": [
+        393,
+        789
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "FramePackMODEL",
+          "link": 64
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 65
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 66
+        },
+        {
+          "name": "image_embeds",
+          "type": "CLIP_VISION_OUTPUT",
+          "link": 67
+        },
+        {
+          "name": "samples",
+          "shape": 7,
+          "type": "LATENT",
+          "link": 68
+        }
+      ],
+      "outputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "links": [
+            70
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "kijai/ComfyUI-FramePackWrapper",
+        "ver": "e71fe9a7eabe083ccc4e7e3bf846ce260ae05287",
+        "Node name for S&R": "FramePackSampler"
+      },
+      "widgets_values": [
+        30,
+        true,
+        0.15,
+        1,
+        10,
+        0,
+        91391428491215,
+        "fixed",
+        9,
+        3,
+        6,
+        "unipc",
+        ""
       ]
+    },
+    {
+      "id": 33,
+      "type": "VAEDecodeTiled",
+      "pos": [
+        2362.6171875,
+        -27.03714370727539
+      ],
+      "size": [
+        315,
+        150
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 70
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 62
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            63
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "VAEDecodeTiled"
+      },
+      "widgets_values": [
+        256,
+        64,
+        64,
+        8
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 12,
+      "type": "VAELoader",
+      "pos": [
+        570.5363159179688,
+        -282.70068359375
+      ],
+      "size": [
+        469.0488586425781,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            22,
+            62
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "hyvid\\hunyuan_video_vae_bf16_repack.safetensors"
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 28,
+      "type": "DownloadAndLoadFramePackModel",
+      "pos": [
+        1202.085205078125,
+        -79.0523681640625
+      ],
+      "size": [
+        384.3670959472656,
+        134.50436401367188
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "compile_args",
+          "shape": 7,
+          "type": "FRAMEPACKCOMPILEARGS",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "FramePackMODEL",
+          "links": [
+            64
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lllyasviel/FramePack",
+        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
+        "Node name for S&R": "DownloadAndLoadFramePackModel"
+      },
+      "widgets_values": [
+        "lllyasviel/FramePackI2V_HY",
+        "bf16",
+        "fp8_e4m3fn",
+        "sageattn"
+      ],
+      "color": "#223",
+      "bgcolor": "#335"
     }
   ],
   "links": [
@@ -660,78 +657,78 @@
       "VAE"
     ],
     [
+      62,
+      12,
+      0,
       33,
-      24,
+      1,
+      "VAE"
+    ],
+    [
+      63,
+      33,
       0,
       23,
       0,
       "IMAGE"
     ],
     [
-      38,
+      64,
       28,
       0,
-      29,
+      34,
       0,
       "FramePackMODEL"
     ],
     [
-      39,
-      12,
+      65,
+      14,
       0,
-      29,
+      34,
       1,
-      "VAE"
-    ],
-    [
-      40,
-      20,
-      0,
-      29,
-      5,
-      "LATENT"
-    ],
-    [
-      41,
-      15,
-      0,
-      29,
-      3,
       "CONDITIONING"
     ],
     [
-      42,
-      14,
+      66,
+      15,
       0,
-      29,
+      34,
       2,
       "CONDITIONING"
     ],
     [
-      43,
-      29,
-      0,
-      24,
-      0,
-      "IMAGE"
-    ],
-    [
-      44,
+      67,
       17,
       0,
-      29,
-      4,
+      34,
+      3,
       "CLIP_VISION_OUTPUT"
+    ],
+    [
+      68,
+      20,
+      0,
+      34,
+      4,
+      "LATENT"
+    ],
+    [
+      70,
+      34,
+      0,
+      33,
+      0,
+      "LATENT"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.740024994425838,
+      "scale": 0.7400249944258391,
       "offset": [
-        -319.23209421635073,
-        310.12569875811914
+        -356.8154218467754,
+        342.5131016393077
       ]
     },
     "frontendVersion": "1.16.7",

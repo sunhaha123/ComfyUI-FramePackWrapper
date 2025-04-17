@@ -133,7 +133,8 @@ class FlowMatchUniPC:
 
             if callback is not None:
                 #callback({'x': x, 'i': i, 'denoised': model_prev_list[-1]})
-                callback_latent = (x[:, :16, :, :, :] - model_prev_list[-1] * sigmas[i]).detach()[0].permute(1,0,2,3)
+                #callback_latent = (x[:, :16, :, :, :] - model_prev_list[-1] * sigmas[i]).detach()[0].permute(1,0,2,3)
+                callback_latent = model_prev_list[-1].detach()[0].permute(1,0,2,3)
                 callback(
                     i, 
                     callback_latent,

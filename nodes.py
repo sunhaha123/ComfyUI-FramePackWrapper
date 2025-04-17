@@ -155,7 +155,6 @@ class FramePackSampler:
         return {
             "required": {
                 "model": ("FramePackMODEL",),
-                "vae": ("VAE",),
                 "positive": ("CONDITIONING",),
                 "negative": ("CONDITIONING",),
                 "image_embeds": ("CLIP_VISION_OUTPUT", ),
@@ -164,7 +163,7 @@ class FramePackSampler:
                 "teacache_rel_l1_thresh": ("FLOAT", {"default": 0.15, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "The threshold for the relative L1 loss."}),
                 "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 30.0, "step": 0.01}),
                 "guidance_scale": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 32.0, "step": 0.01}),
-                "shift": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 1000.0, "step": 0.01}),
+                "shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1000.0, "step": 0.01}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "latent_window_size": ("INT", {"default": 9, "min": 1, "max": 33, "step": 1, "tooltip": "The size of the latent window to use for sampling."}),
                 "total_second_length": ("FLOAT", {"default": 5, "min": 1, "max": 120, "step": 0.1, "tooltip": "The total length of the video in seconds."}),
@@ -185,12 +184,12 @@ class FramePackSampler:
             }
         }
 
-    RETURN_TYPES = ("IMAGE", )
-    RETURN_NAMES = ("images",)
+    RETURN_TYPES = ("LATENT", )
+    RETURN_NAMES = ("samples",)
     FUNCTION = "process"
     CATEGORY = "FramePackWrapper"
 
-    def process(self, model,vae, positive, negative, latent_window_size, use_teacache, total_second_length, teacache_rel_l1_thresh, image_embeds, shift, steps, cfg, guidance_scale, seed, scheduler, gpu_memory_preservation, samples=None):
+    def process(self, model, shift, positive, negative, latent_window_size, use_teacache, total_second_length, teacache_rel_l1_thresh, image_embeds, steps, cfg, guidance_scale, seed, scheduler, gpu_memory_preservation, samples=None):
         total_latent_sections = (total_second_length * 30) / (latent_window_size * 4)
         total_latent_sections = int(max(round(total_latent_sections), 1))
 
@@ -200,6 +199,7 @@ class FramePackSampler:
         #image_encoder = model["image_encoder"]
 
         device = mm.get_torch_device()
+        offload_device = mm.unet_offload_device()
 
         mm.unload_all_models()
         mm.cleanup_models()
@@ -325,7 +325,7 @@ class FramePackSampler:
                     real_guidance_scale=cfg,
                     distilled_guidance_scale=guidance_scale,
                     guidance_rescale=0,
-                    # shift=3.0,
+                    shift=shift if shift != 0 else None,
                     num_inference_steps=steps,
                     generator=rnd,
                     prompt_embeds=llama_vec,
@@ -353,28 +353,32 @@ class FramePackSampler:
             total_generated_latent_frames += int(generated_latents.shape[2])
             history_latents = torch.cat([generated_latents.to(history_latents), history_latents], dim=2)
 
-            real_history_latents = history_latents[:, :, :total_generated_latent_frames, :, :]
-
-            offload_model_from_device_for_memory_preservation(transformer, target_device=device, preserved_memory_gb=8)
+            real_history_latents = history_latents[:, :, :total_generated_latent_frames, :, :]            
 
             if history_pixels is None:
-                vae_tile_size = 256
-                history_pixels = decode_tiled(vae, real_history_latents, vae_tile_size).cpu()
+                current_latents = real_history_latents
+                #history_pixels = decode_tiled(vae, real_history_latents, vae_tile_size).cpu()
             else:
                 section_latent_frames = (latent_window_size * 2 + 1) if is_last_section else (latent_window_size * 2)
-                overlapped_frames = latent_window_size * 4 - 3
+                #overlapped_frames = latent_window_size * 4 - 3
 
-                current_pixels = decode_tiled(vae, real_history_latents[:, :, :section_latent_frames], vae_tile_size).cpu()
-                history_pixels = soft_append_bcthw(current_pixels, history_pixels, overlapped_frames)
+                #current_pixels = decode_tiled(vae, real_history_latents[:, :, :section_latent_frames], vae_tile_size).cpu()
+                current_latents = torch.cat([current_latents, real_history_latents[:, :, :section_latent_frames]], dim=0).cpu()
+                
+                #history_pixels = soft_append_bcthw(current_pixels, history_pixels, overlapped_frames)
 
 
-            print(f'Decoded. Current latent shape {real_history_latents.shape}; pixel shape {history_pixels.shape}')
+            #print(f'Decoded. Current latent shape {real_history_latents.shape}; pixel shape {history_pixels.shape}')
 
             if is_last_section:
                 break
-        
-        print("history_pixels", history_pixels.shape)
-        return history_pixels.squeeze(0),
+
+        transformer.to(offload_device)
+        mm.soft_empty_cache()
+
+        return {"samples": current_latents / vae_scaling_factor},
+        #print("history_pixels", history_pixels.shape)
+        #return history_pixels.squeeze(0).permute(1, 2, 3, 0).cpu(),
 
 def decode_tiled(vae, samples, tile_size, overlap=64, temporal_size=64, temporal_overlap=8):
         if tile_size < overlap * 4:
@@ -393,7 +397,7 @@ def decode_tiled(vae, samples, tile_size, overlap=64, temporal_size=64, temporal
         images = vae.decode_tiled(samples / vae_scaling_factor, tile_x=tile_size // compression, tile_y=tile_size // compression, overlap=overlap // compression, tile_t=temporal_size, overlap_t=temporal_overlap)
         #if len(images.shape) == 5: #Combine batches
         #    images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])
-        return images
+        return images.permute(0, 4, 1, 2, 3)
     
 NODE_CLASS_MAPPINGS = {
     "DownloadAndLoadFramePackModel": DownloadAndLoadFramePackModel,
