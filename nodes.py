@@ -138,11 +138,11 @@ class DownloadAndLoadFramePackModel:
 
         if compile_args is not None:
             if compile_args["compile_single_blocks"]:
-                for i, block in enumerate(transformer.single_blocks):
-                    transformer.single_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
+                for i, block in enumerate(transformer.single_transformer_blocks):
+                    transformer.single_transformer_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
             if compile_args["compile_double_blocks"]:
-                for i, block in enumerate(transformer.double_blocks):
-                    transformer.double_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
+                for i, block in enumerate(transformer.transformer_blocks):
+                    transformer.transformer_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
                
             #transformer = torch.compile(transformer, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
 
@@ -171,19 +171,15 @@ class FramePackSampler:
                 "latent_window_size": ("INT", {"default": 9, "min": 1, "max": 33, "step": 1, "tooltip": "The size of the latent window to use for sampling."}),
                 "total_second_length": ("FLOAT", {"default": 5, "min": 1, "max": 120, "step": 0.1, "tooltip": "The total length of the video in seconds."}),
                 "gpu_memory_preservation": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 128.0, "step": 0.1, "tooltip": "The amount of GPU memory to preserve."}),
-                "scheduler": (["unipc"],
+                "sampler": (["unipc_bh1", "unipc_bh2"],
                     {
-                        "default": 'unipc'
+                        "default": 'unipc_bh1'
                     }),
-
-
             },
             "optional": {
-                "samples": ("LATENT", {"tooltip": "init Latents to use for video2video process"} ),
-                #"denoise_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                #"feta_args": ("FETAARGS", ),
-                #"teacache_args": ("TEACACHEARGS", ),
-                #"slg_args": ("SLGARGS", ),
+                "start_latent": ("LATENT", {"tooltip": "init Latents to use for image2video"} ),
+                "initial_samples": ("LATENT", {"tooltip": "init Latents to use for video2video"} ),
+                "denoise_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -192,9 +188,11 @@ class FramePackSampler:
     FUNCTION = "process"
     CATEGORY = "FramePackWrapper"
 
-    def process(self, model, shift, positive, negative, latent_window_size, use_teacache, total_second_length, teacache_rel_l1_thresh, image_embeds, steps, cfg, guidance_scale, seed, scheduler, gpu_memory_preservation, samples=None):
+    def process(self, model, shift, positive, negative, latent_window_size, use_teacache, total_second_length, teacache_rel_l1_thresh, image_embeds, steps, cfg, 
+                guidance_scale, seed, sampler, gpu_memory_preservation, start_latent=None, initial_samples=None, denoise_strength=1.0):
         total_latent_sections = (total_second_length * 30) / (latent_window_size * 4)
         total_latent_sections = int(max(round(total_latent_sections), 1))
+        print("total_latent_sections: ", total_latent_sections)
 
         transformer = model["transformer"]
         base_dtype = model["dtype"]
@@ -206,7 +204,9 @@ class FramePackSampler:
         mm.cleanup_models()
         mm.soft_empty_cache()
 
-        start_latent = samples["samples"] * vae_scaling_factor
+        start_latent = start_latent["samples"] * vae_scaling_factor
+        if initial_samples is not None:
+            initial_samples = initial_samples["samples"] * vae_scaling_factor
         print("start_latent", start_latent.shape)
         B, C, T, H, W = start_latent.shape
 
@@ -229,15 +229,27 @@ class FramePackSampler:
         # Sampling
 
         rnd = torch.Generator("cpu").manual_seed(seed)
+        
         num_frames = latent_window_size * 4 - 3
 
         history_latents = torch.zeros(size=(1, 16, 1 + 2 + 16, H, W), dtype=torch.float32).cpu()
-        history_pixels = None
+       
         total_generated_latent_frames = 0
 
-        vae_tile_size = 256
+        latent_paddings_list = list(reversed(range(total_latent_sections)))
+        latent_paddings = latent_paddings_list.copy()  # Create a copy for iteration
 
-        latent_paddings = reversed(range(total_latent_sections))
+        comfy_model = HyVideoModel(
+                HyVideoModelConfig(base_dtype),
+                model_type=comfy.model_base.ModelType.FLOW,
+                device=device,
+            )
+      
+        patcher = comfy.model_patcher.ModelPatcher(comfy_model, device, torch.device("cpu"))
+        from latent_preview import prepare_callback
+        callback = prepare_callback(patcher, steps)
+
+        move_model_to_device_with_memory_preservation(transformer, target_device=device, preserved_memory_gb=gpu_memory_preservation)
 
         if total_latent_sections > 4:
             # In theory the latent_paddings should follow the above sequence, but it seems that duplicating some
@@ -245,8 +257,10 @@ class FramePackSampler:
             # One can try to remove below trick and just
             # use `latent_paddings = list(reversed(range(total_latent_sections)))` to compare
             latent_paddings = [3] + [2] * (total_latent_sections - 3) + [1, 0]
-
+            latent_paddings_list = latent_paddings.copy()
+            
         for latent_padding in latent_paddings:
+            print(f"latent_padding: {latent_padding}")
             is_last_section = latent_padding == 0
             latent_padding_size = latent_padding * latent_window_size
 
@@ -260,29 +274,42 @@ class FramePackSampler:
             clean_latents_post, clean_latents_2x, clean_latents_4x = history_latents[:, :, :1 + 2 + 16, :, :].split([1, 2, 16], dim=2)
             clean_latents = torch.cat([clean_latents_pre, clean_latents_post], dim=2)
 
+            #vid2vid
+            
+            if initial_samples is not None:
+                total_length = initial_samples.shape[2]
+                
+                # Get the max padding value for normalization
+                max_padding = max(latent_paddings_list)
+                
+                if is_last_section:
+                    # Last section should capture the end of the sequence
+                    start_idx = max(0, total_length - latent_window_size)
+                else:
+                    # Calculate windows that distribute more evenly across the sequence
+                    # This normalizes the padding values to create appropriate spacing
+                    if max_padding > 0:  # Avoid division by zero
+                        progress = (max_padding - latent_padding) / max_padding
+                        start_idx = int(progress * max(0, total_length - latent_window_size))
+                    else:
+                        start_idx = 0
+                
+                end_idx = min(start_idx + latent_window_size, total_length)
+                print(f"start_idx: {start_idx}, end_idx: {end_idx}, total_length: {total_length}")
+                input_init_latents = initial_samples[:, :, start_idx:end_idx, :, :].to(device)
+          
 
             if use_teacache:
                 transformer.initialize_teacache(enable_teacache=True, num_steps=steps, rel_l1_thresh=teacache_rel_l1_thresh)
             else:
                 transformer.initialize_teacache(enable_teacache=False)
 
-            comfy_model = HyVideoModel(
-                HyVideoModelConfig(base_dtype),
-                model_type=comfy.model_base.ModelType.FLOW,
-                device=device,
-            )
-            #comfy_model.diffusion_model = transformer
-            patcher = comfy.model_patcher.ModelPatcher(comfy_model, device, torch.device("cpu"))
-
-            from latent_preview import prepare_callback
-            callback = prepare_callback(patcher, steps)
-
-            move_model_to_device_with_memory_preservation(transformer, target_device=device, preserved_memory_gb=gpu_memory_preservation)
-
             with torch.autocast(device_type=mm.get_autocast_device(device), dtype=base_dtype, enabled=True):
                 generated_latents = sample_hunyuan(
                     transformer=transformer,
-                    sampler='unipc',
+                    sampler=sampler,
+                    initial_latent=input_init_latents if initial_samples is not None else None,
+                    strength=denoise_strength,
                     width=W * 8,
                     height=H * 8,
                     frames=num_frames,
@@ -299,7 +326,7 @@ class FramePackSampler:
                     negative_prompt_embeds_mask=llama_attention_mask_n,
                     negative_prompt_poolers=clip_l_pooler_n,
                     device=device,
-                    dtype=torch.bfloat16,
+                    dtype=base_dtype,
                     image_embeddings=image_encoder_last_hidden_state,
                     latent_indices=latent_indices,
                     clean_latents=clean_latents,
@@ -319,28 +346,13 @@ class FramePackSampler:
 
             real_history_latents = history_latents[:, :, :total_generated_latent_frames, :, :]            
 
-            if history_pixels is None:
-                current_latents = real_history_latents
-                #history_pixels = decode_tiled(vae, real_history_latents, vae_tile_size).cpu()
-            else:
-                section_latent_frames = (latent_window_size * 2 + 1) if is_last_section else (latent_window_size * 2)
-                #overlapped_frames = latent_window_size * 4 - 3
-
-                #current_pixels = decode_tiled(vae, real_history_latents[:, :, :section_latent_frames], vae_tile_size).cpu()
-                current_latents = torch.cat([current_latents, real_history_latents[:, :, :section_latent_frames]], dim=0).cpu()
-                
-                #history_pixels = soft_append_bcthw(current_pixels, history_pixels, overlapped_frames)
-
-
-            #print(f'Decoded. Current latent shape {real_history_latents.shape}; pixel shape {history_pixels.shape}')
-
             if is_last_section:
                 break
 
         transformer.to(offload_device)
         mm.soft_empty_cache()
 
-        return {"samples": current_latents / vae_scaling_factor},
+        return {"samples": real_history_latents / vae_scaling_factor},
         #print("history_pixels", history_pixels.shape)
         #return history_pixels.squeeze(0).permute(1, 2, 3, 0).cpu(),
 

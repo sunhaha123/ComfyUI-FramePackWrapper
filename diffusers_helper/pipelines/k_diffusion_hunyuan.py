@@ -112,9 +112,10 @@ def sample_hunyuan(
         )
     )
 
-    if sampler == 'unipc':
-        results = sample_unipc(k_model, latents, sigmas, extra_args=sampler_kwargs, disable=False, callback=callback)
-    else:
-        raise NotImplementedError(f'Sampler {sampler} is not supported.')
+    if sampler == 'unipc_bh1':
+        variant = 'bh1'
+    elif sampler == 'unipc_bh2':
+        variant = 'bh2'
+    results = sample_unipc(k_model, latents, sigmas, extra_args=sampler_kwargs, disable=False, variant=variant, callback=callback)
 
     return results
