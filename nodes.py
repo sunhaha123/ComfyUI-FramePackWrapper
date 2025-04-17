@@ -127,7 +127,7 @@ class DownloadAndLoadFramePackModel:
             )
 
         transformer = HunyuanVideoTransformer3DModelPacked.from_pretrained(model_path, torch_dtype=base_dtype, attention_mode=attention_mode).cpu()
-        params_to_keep = {}
+        params_to_keep = {"norm", "bias", "time_in", "vector_in", "guidance_in", "txt_in", "img_in"}
         if quantization == 'fp8_e4m3fn' or quantization == 'fp8_e4m3fn_fast':
             transformer = transformer.to(torch.float8_e4m3fn)
             if quantization == "fp8_e4m3fn_fast":
@@ -251,8 +251,8 @@ class FramePackFindNearestBucket:
     RETURN_TYPES = ("INT", "INT", )
     RETURN_NAMES = ("width","height",)
     FUNCTION = "process"
-    CATEGORY = "WanVideoWrapper"
-    DESCRIPTION = "Resizes image to the closest supported resolution based on aspect ratio and max pixels, according to the original code"
+    CATEGORY = "FramePackWrapper"
+    DESCRIPTION = "Finds the closes resolution bucket as defined in the orignal code"
 
     def process(self, image, base_resolution):
 
