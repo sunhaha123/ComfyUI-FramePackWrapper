@@ -42,9 +42,7 @@ class HyVideoModelConfig:
         self.latent_format.latent_channels = 16
         self.manual_cast_dtype = dtype
         self.sampling_settings = {"multiplier": 1.0}
-        # Don't know what this is. Value taken from ComfyUI Mochi model.
         self.memory_usage_factor = 2.0
-        # denoiser is handled by extension
         self.unet_config["disable_unet_model_creation"] = True
 
 class FramePackTorchCompileSettings:
@@ -90,7 +88,7 @@ class DownloadAndLoadFramePackModel:
                 "model": (["lllyasviel/FramePackI2V_HY"],),
 
             "base_precision": (["fp32", "bf16", "fp16"], {"default": "bf16"}),
-            "quantization": (['disabled', 'fp8_e4m3fn', 'fp8_e5m2'], {"default": 'disabled', "tooltip": "optional quantization method"}),
+            "quantization": (['disabled', 'fp8_e4m3fn', 'fp8_e4m3fn_fast', 'fp8_e5m2'], {"default": 'disabled', "tooltip": "optional quantization method"}),
             },
             "optional": {
                 "attention_mode": ([
@@ -125,9 +123,14 @@ class DownloadAndLoadFramePackModel:
             )
 
         transformer = HunyuanVideoTransformer3DModelPacked.from_pretrained(model_path, torch_dtype=base_dtype, attention_mode=attention_mode).cpu()
-       
-        if quantization == 'fp8_e4m3fn':
+        params_to_keep = {}
+        if quantization == 'fp8_e4m3fn' or quantization == 'fp8_e4m3fn_fast':
             transformer = transformer.to(torch.float8_e4m3fn)
+            if quantization == "fp8_e4m3fn_fast":
+                from .fp8_optimization import convert_fp8_linear
+                convert_fp8_linear(transformer, base_dtype, params_to_keep=params_to_keep)
+        elif quantization == 'fp8_e5m2':
+            transformer = transformer.to(torch.float8_e5m2)
         else:
             transformer = transformer.to(base_dtype)
 
@@ -195,8 +198,6 @@ class FramePackSampler:
 
         transformer = model["transformer"]
         base_dtype = model["dtype"]
-        #feature_extractor = model["feature_extractor"]
-        #image_encoder = model["image_encoder"]
 
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
@@ -205,28 +206,9 @@ class FramePackSampler:
         mm.cleanup_models()
         mm.soft_empty_cache()
 
-        # # Text encoding
-        # llama_vec, clip_l_pooler = encode_prompt_conds(prompt, text_encoder, text_encoder_2, tokenizer, tokenizer_2)
-
-        # if cfg == 1:
-        #     llama_vec_n, clip_l_pooler_n = torch.zeros_like(llama_vec), torch.zeros_like(clip_l_pooler)
-        # else:
-        #     llama_vec_n, clip_l_pooler_n = encode_prompt_conds(n_prompt, text_encoder, text_encoder_2, tokenizer, tokenizer_2)
-
-        # llama_vec, llama_attention_mask = crop_or_pad_yield_mask(llama_vec, length=512)
-        # llama_vec_n, llama_attention_mask_n = crop_or_pad_yield_mask(llama_vec_n, length=512)
-
-        # Processing input image
-       
-
         start_latent = samples["samples"] * vae_scaling_factor
         print("start_latent", start_latent.shape)
         B, C, T, H, W = start_latent.shape
-
-        #image_encoder_output = hf_clip_vision_encode(input_image_np, feature_extractor, image_encoder)
-        #image_encoder_last_hidden_state = image_encoder_output.last_hidden_state
-
-        # Dtype
 
         image_encoder_last_hidden_state = image_embeds["last_hidden_state"].to(base_dtype).to(device)
 
@@ -283,24 +265,6 @@ class FramePackSampler:
                 transformer.initialize_teacache(enable_teacache=True, num_steps=steps, rel_l1_thresh=teacache_rel_l1_thresh)
             else:
                 transformer.initialize_teacache(enable_teacache=False)
-
-            # def callback(d):
-            #     preview = d['denoised']
-            #     preview = vae_decode_fake(preview)
-
-            #     preview = (preview * 255.0).detach().cpu().numpy().clip(0, 255).astype(np.uint8)
-            #     preview = einops.rearrange(preview, 'b c t h w -> (b h) (t w) c')
-
-            #     if stream.input_queue.top() == 'end':
-            #         stream.output_queue.push(('end', None))
-            #         raise KeyboardInterrupt('User ends the task.')
-
-            #     current_step = d['i'] + 1
-            #     percentage = int(100.0 * current_step / steps)
-            #     hint = f'Sampling {current_step}/{steps}'
-            #     desc = f'Total generated frames: {int(max(0, total_generated_latent_frames * 4 - 3))}, Video length: {max(0, (total_generated_latent_frames * 4 - 3) / 30) :.2f} seconds (FPS-30). The video is being extended now ...'
-            #     stream.output_queue.push(('progress', (preview, desc, make_progress_bar_html(percentage, hint))))
-            #     return
 
             comfy_model = HyVideoModel(
                 HyVideoModelConfig(base_dtype),
