@@ -1,0 +1,744 @@
+{
+  "id": "ce2cb810-7775-4564-8928-dd5bed1053cd",
+  "revision": 0,
+  "last_node_id": 29,
+  "last_link_id": 44,
+  "nodes": [
+    {
+      "id": 12,
+      "type": "VAELoader",
+      "pos": [
+        934.488525390625,
+        110.97966766357422
+      ],
+      "size": [
+        469.0488586425781,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            22,
+            39
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "hyvid\\hunyuan_video_vae_bf16_repack.safetensors"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        1416.453857421875,
+        536.1906127929688
+      ],
+      "size": [
+        317.4000244140625,
+        26
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            41
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "ConditioningZeroOut"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 19,
+      "type": "LoadImage",
+      "pos": [
+        682.2447509765625,
+        721.7699584960938
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            19,
+            21
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "oldman.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "DualCLIPLoader",
+      "pos": [
+        507.475830078125,
+        319.98162841796875
+      ],
+      "size": [
+        340.2243957519531,
+        130
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "DualCLIPLoader"
+      },
+      "widgets_values": [
+        "clip_l.safetensors",
+        "llava_llama3_fp16.safetensors",
+        "hunyuan_video",
+        "default"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 18,
+      "type": "CLIPVisionLoader",
+      "pos": [
+        511.98028564453125,
+        548.802734375
+      ],
+      "size": [
+        388.87139892578125,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP_VISION",
+          "type": "CLIP_VISION",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "CLIPVisionLoader"
+      },
+      "widgets_values": [
+        "sigclip_vision_patch14_384.safetensors"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 24,
+      "type": "GetImageSizeAndCount",
+      "pos": [
+        2347.95458984375,
+        63.233543395996094
+      ],
+      "size": [
+        277.20001220703125,
+        86
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 43
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            33
+          ]
+        },
+        {
+          "label": "512 width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "512 height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "37 count",
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "8ecf5cd05e0a1012087b0da90eea9a13674668db",
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 23,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2683.978515625,
+        61.43181228637695
+      ],
+      "size": [
+        576.0077514648438,
+        904.0077514648438
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 33
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "0a75c7958fe320efcb052f1d9f8451fd20c730a8",
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 24,
+        "loop_count": 0,
+        "filename_prefix": "FramePack",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "trim_to_audio": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "FramePack_00002.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 24,
+            "workflow": "FramePack_00002.png",
+            "fullpath": "N:\\AI\\ComfyUI\\temp\\FramePack_00002.mp4"
+          }
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "FramePackTorchCompileSettings",
+      "pos": [
+        528.2340087890625,
+        -143.91505432128906
+      ],
+      "size": [
+        531.5999755859375,
+        202
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "torch_compile_args",
+          "type": "FRAMEPACKCOMPILEARGS",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "lllyasviel/FramePack",
+        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
+        "Node name for S&R": "FramePackTorchCompileSettings"
+      },
+      "widgets_values": [
+        "inductor",
+        false,
+        "default",
+        false,
+        64,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 28,
+      "type": "DownloadAndLoadFramePackModel",
+      "pos": [
+        1189.47314453125,
+        -124.0959243774414
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "compile_args",
+          "shape": 7,
+          "type": "FRAMEPACKCOMPILEARGS",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "FramePackMODEL",
+          "links": [
+            38
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lllyasviel/FramePack",
+        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
+        "Node name for S&R": "DownloadAndLoadFramePackModel"
+      },
+      "widgets_values": [
+        "lllyasviel/FramePackI2V_HY",
+        "bf16",
+        "fp8_e4m3fn",
+        "sdpa"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "VAEEncode",
+      "pos": [
+        1487.6229248046875,
+        172.23907470703125
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            40
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "VAEEncode"
+      },
+      "widgets_values": [],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 14,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1115.5635986328125,
+        281.24420166015625
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            14,
+            42
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "old man is taking of his hat"
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 29,
+      "type": "FramePackSampler",
+      "pos": [
+        1786.7501220703125,
+        -5.181013584136963
+      ],
+      "size": [
+        380.4000244140625,
+        796.4000244140625
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "FramePackMODEL",
+          "link": 38
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 39
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 42
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 41
+        },
+        {
+          "name": "image_embeds",
+          "type": "CLIP_VISION_OUTPUT",
+          "link": 44
+        },
+        {
+          "name": "samples",
+          "shape": 7,
+          "type": "LATENT",
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            43
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lllyasviel/FramePack",
+        "ver": "0e5fe5d7ca13c76fb8e13708f4b92e7c7a34f20c",
+        "Node name for S&R": "FramePackSampler"
+      },
+      "widgets_values": [
+        30,
+        true,
+        0.15,
+        1,
+        10,
+        5,
+        0,
+        "fixed",
+        9,
+        1,
+        6,
+        "unipc",
+        ""
+      ]
+    },
+    {
+      "id": 17,
+      "type": "CLIPVisionEncode",
+      "pos": [
+        1120.96875,
+        591.1436157226562
+      ],
+      "size": [
+        380.4000244140625,
+        78
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip_vision",
+          "type": "CLIP_VISION",
+          "link": 18
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP_VISION_OUTPUT",
+          "type": "CLIP_VISION_OUTPUT",
+          "links": [
+            44
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.28",
+        "Node name for S&R": "CLIPVisionEncode"
+      },
+      "widgets_values": [
+        "center"
+      ]
+    }
+  ],
+  "links": [
+    [
+      12,
+      13,
+      0,
+      14,
+      0,
+      "CLIP"
+    ],
+    [
+      14,
+      14,
+      0,
+      15,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      18,
+      18,
+      0,
+      17,
+      0,
+      "CLIP_VISION"
+    ],
+    [
+      19,
+      19,
+      0,
+      17,
+      1,
+      "IMAGE"
+    ],
+    [
+      21,
+      19,
+      0,
+      20,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      12,
+      0,
+      20,
+      1,
+      "VAE"
+    ],
+    [
+      33,
+      24,
+      0,
+      23,
+      0,
+      "IMAGE"
+    ],
+    [
+      38,
+      28,
+      0,
+      29,
+      0,
+      "FramePackMODEL"
+    ],
+    [
+      39,
+      12,
+      0,
+      29,
+      1,
+      "VAE"
+    ],
+    [
+      40,
+      20,
+      0,
+      29,
+      5,
+      "LATENT"
+    ],
+    [
+      41,
+      15,
+      0,
+      29,
+      3,
+      "CONDITIONING"
+    ],
+    [
+      42,
+      14,
+      0,
+      29,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      43,
+      29,
+      0,
+      24,
+      0,
+      "IMAGE"
+    ],
+    [
+      44,
+      17,
+      0,
+      29,
+      4,
+      "CLIP_VISION_OUTPUT"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.740024994425838,
+      "offset": [
+        -319.23209421635073,
+        310.12569875811914
+      ]
+    },
+    "frontendVersion": "1.16.7",
+    "VHS_latentpreview": true,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
