@@ -172,7 +172,7 @@ class FramePackFindNearestBucket:
 
         H, W = image.shape[1], image.shape[2]
 
-        new_width, new_height = find_nearest_bucket(H, W, resolution=base_resolution)
+        new_height, new_width = find_nearest_bucket(H, W, resolution=base_resolution)
 
         return (new_width, new_height, )
 
