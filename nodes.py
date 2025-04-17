@@ -6,6 +6,9 @@ import numpy as np
 import math
 from tqdm import tqdm
 
+from accelerate import init_empty_weights
+from accelerate.utils import set_module_tensor_to_device
+
 import folder_paths
 import comfy.model_management as mm
 from comfy.utils import load_torch_file, ProgressBar, common_upscale
@@ -134,6 +137,89 @@ class DownloadAndLoadFramePackModel:
             transformer = transformer.to(torch.float8_e5m2)
         else:
             transformer = transformer.to(base_dtype)
+
+        DynamicSwapInstaller.install_model(transformer, device=device)
+
+        if compile_args is not None:
+            if compile_args["compile_single_blocks"]:
+                for i, block in enumerate(transformer.single_transformer_blocks):
+                    transformer.single_transformer_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
+            if compile_args["compile_double_blocks"]:
+                for i, block in enumerate(transformer.transformer_blocks):
+                    transformer.transformer_blocks[i] = torch.compile(block, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
+               
+            #transformer = torch.compile(transformer, fullgraph=compile_args["fullgraph"], dynamic=compile_args["dynamic"], backend=compile_args["backend"], mode=compile_args["mode"])
+
+        pipe = {
+            "transformer": transformer.eval(),
+            "dtype": base_dtype,
+        }
+        return (pipe, )
+    
+class LoadFramePackModel:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": (folder_paths.get_filename_list("diffusion_models"), {"tooltip": "These models are loaded from the 'ComfyUI/models/diffusion_models' -folder",}),
+
+            "base_precision": (["fp32", "bf16", "fp16"], {"default": "bf16"}),
+            "quantization": (['disabled', 'fp8_e4m3fn', 'fp8_e4m3fn_fast', 'fp8_e5m2'], {"default": 'disabled', "tooltip": "optional quantization method"}),
+            },
+            "optional": {
+                "attention_mode": ([
+                    "sdpa",
+                    "flash_attn",
+                    "sageattn",
+                    ], {"default": "sdpa"}),
+                "compile_args": ("FRAMEPACKCOMPILEARGS", ),
+            }
+        }
+
+    RETURN_TYPES = ("FramePackMODEL",)
+    RETURN_NAMES = ("model", )
+    FUNCTION = "loadmodel"
+    CATEGORY = "FramePackWrapper"
+
+    def loadmodel(self, model, base_precision, quantization,
+                  compile_args=None, attention_mode="sdpa"):
+        
+        base_dtype = {"fp8_e4m3fn": torch.float8_e4m3fn, "fp8_e4m3fn_fast": torch.float8_e4m3fn, "bf16": torch.bfloat16, "fp16": torch.float16, "fp16_fast": torch.float16, "fp32": torch.float32}[base_precision]
+
+        device = mm.get_torch_device()
+        offload_device = mm.unet_offload_device()
+
+        model_path = folder_paths.get_full_path_or_raise("diffusion_models", model)
+        model_config_path = os.path.join(script_directory, "transformer_config.json")
+        import json
+        with open(model_config_path, "r") as f:
+            config = json.load(f)
+        sd = load_torch_file(model_path, device=offload_device, safe_load=True)
+        
+        with init_empty_weights():
+            transformer = HunyuanVideoTransformer3DModelPacked(**config)
+
+        params_to_keep = {"norm", "bias", "time_in", "vector_in", "guidance_in", "txt_in", "img_in"}
+        if quantization == "fp8_e4m3fn" or quantization == "fp8_e4m3fn_fast" or quantization == "fp8_scaled":
+            dtype = torch.float8_e4m3fn
+        elif quantization == "fp8_e5m2":
+            dtype = torch.float8_e5m2
+        else:
+            dtype = base_dtype
+        print("Using accelerate to load and assign model weights to device...")
+        param_count = sum(1 for _ in transformer.named_parameters())
+        for name, param in tqdm(transformer.named_parameters(), 
+                desc=f"Loading transformer parameters to {offload_device}", 
+                total=param_count,
+                leave=True):
+            dtype_to_use = base_dtype if any(keyword in name for keyword in params_to_keep) else dtype
+   
+            set_module_tensor_to_device(transformer, name, device=offload_device, dtype=dtype_to_use, value=sd[name])
+
+        if quantization == "fp8_e4m3fn_fast":
+            from .fp8_optimization import convert_fp8_linear
+            convert_fp8_linear(transformer, base_dtype, params_to_keep=params_to_keep)
+      
 
         DynamicSwapInstaller.install_model(transformer, device=device)
 
@@ -378,38 +464,19 @@ class FramePackSampler:
         mm.soft_empty_cache()
 
         return {"samples": real_history_latents / vae_scaling_factor},
-        #print("history_pixels", history_pixels.shape)
-        #return history_pixels.squeeze(0).permute(1, 2, 3, 0).cpu(),
-
-def decode_tiled(vae, samples, tile_size, overlap=64, temporal_size=64, temporal_overlap=8):
-        if tile_size < overlap * 4:
-            overlap = tile_size // 4
-        if temporal_size < temporal_overlap * 2:
-            temporal_overlap = temporal_overlap // 2
-        temporal_compression = vae.temporal_compression_decode()
-        if temporal_compression is not None:
-            temporal_size = max(2, temporal_size // temporal_compression)
-            temporal_overlap = max(1, min(temporal_size // 2, temporal_overlap // temporal_compression))
-        else:
-            temporal_size = None
-            temporal_overlap = None
-
-        compression = vae.spacial_compression_decode()
-        images = vae.decode_tiled(samples / vae_scaling_factor, tile_x=tile_size // compression, tile_y=tile_size // compression, overlap=overlap // compression, tile_t=temporal_size, overlap_t=temporal_overlap)
-        #if len(images.shape) == 5: #Combine batches
-        #    images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])
-        return images.permute(0, 4, 1, 2, 3)
     
 NODE_CLASS_MAPPINGS = {
     "DownloadAndLoadFramePackModel": DownloadAndLoadFramePackModel,
     "FramePackSampler": FramePackSampler,
     "FramePackTorchCompileSettings": FramePackTorchCompileSettings,
     "FramePackFindNearestBucket": FramePackFindNearestBucket,
+    "LoadFramePackModel": LoadFramePackModel,
     }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DownloadAndLoadFramePackModel": "(Down)Load FramePackModel",
     "FramePackSampler": "FramePackSampler",
     "FramePackTorchCompileSettings": "Torch Compile Settings",
     "FramePackFindNearestBucket": "Find Nearest Bucket",
+    "LoadFramePackModel": "Load FramePackModel",
     }
 
