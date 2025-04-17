@@ -19,7 +19,8 @@ vae_scaling_factor = 0.476986
 from .diffusers_helper.models.hunyuan_video_packed import HunyuanVideoTransformer3DModelPacked
 from .diffusers_helper.memory import DynamicSwapInstaller, move_model_to_device_with_memory_preservation, offload_model_from_device_for_memory_preservation
 from .diffusers_helper.pipelines.k_diffusion_hunyuan import sample_hunyuan
-from .diffusers_helper.utils import crop_or_pad_yield_mask, soft_append_bcthw
+from .diffusers_helper.utils import crop_or_pad_yield_mask
+from .diffusers_helper.bucket_tools import find_nearest_bucket
 
 class HyVideoModel(comfy.model_base.BaseModel):
     def __init__(self, *args, **kwargs):
@@ -151,7 +152,31 @@ class DownloadAndLoadFramePackModel:
             "dtype": base_dtype,
         }
         return (pipe, )
-        
+
+class FramePackFindNearestBucket:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "image": ("IMAGE", {"tooltip": "Image to resize"}),
+            "base_resolution": ("INT", {"default": 640, "min": 64, "max": 2048, "step": 8, "tooltip": "Width of the image to encode"}),
+            },
+        }
+
+    RETURN_TYPES = ("INT", "INT", )
+    RETURN_NAMES = ("width","height",)
+    FUNCTION = "process"
+    CATEGORY = "WanVideoWrapper"
+    DESCRIPTION = "Resizes image to the closest supported resolution based on aspect ratio and max pixels, according to the original code"
+
+    def process(self, image, base_resolution):
+
+        H, W = image.shape[1], image.shape[2]
+
+        new_width, new_height = find_nearest_bucket(H, W, resolution=base_resolution)
+
+        return (new_width, new_height, )
+
+
 class FramePackSampler:
     @classmethod
     def INPUT_TYPES(s):
@@ -379,10 +404,12 @@ NODE_CLASS_MAPPINGS = {
     "DownloadAndLoadFramePackModel": DownloadAndLoadFramePackModel,
     "FramePackSampler": FramePackSampler,
     "FramePackTorchCompileSettings": FramePackTorchCompileSettings,
+    "FramePackFindNearestBucket": FramePackFindNearestBucket,
     }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DownloadAndLoadFramePackModel": "(Down)Load FramePackModel",
     "FramePackSampler": "FramePackSampler",
     "FramePackTorchCompileSettings": "Torch Compile Settings",
+    "FramePackFindNearestBucket": "Find Nearest Bucket",
     }
 
