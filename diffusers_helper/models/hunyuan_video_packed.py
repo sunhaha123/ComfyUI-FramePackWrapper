@@ -25,6 +25,7 @@ if torch.backends.cuda.math_sdp_enabled():
     enabled_backends.append("math")
 if torch.backends.cuda.mem_efficient_sdp_enabled():
     enabled_backends.append("mem_efficient")
+
 # if torch.backends.cuda.cudnn_sdp_enabled():
 #     enabled_backends.append("cudnn")
 
@@ -201,7 +202,7 @@ class CombinedTimestepGuidanceTextProjEmbeddings(nn.Module):
         self.time_proj = Timesteps(num_channels=256, flip_sin_to_cos=True, downscale_freq_shift=0)
         self.timestep_embedder = TimestepEmbedding(in_channels=256, time_embed_dim=embedding_dim)
         self.guidance_embedder = TimestepEmbedding(in_channels=256, time_embed_dim=embedding_dim)
-        self.text_embedder = PixArtAlphaTextProjection(pooled_projection_dim, embedding_dim, act_fn="silu")
+        self.text_embedder = PixArtAlphaTextProjection(pooled_projection_dim, embedding_dim)
 
     def forward(self, timestep, guidance, pooled_projection):
         timesteps_proj = self.time_proj(timestep)
@@ -224,7 +225,7 @@ class CombinedTimestepTextProjEmbeddings(nn.Module):
 
         self.time_proj = Timesteps(num_channels=256, flip_sin_to_cos=True, downscale_freq_shift=0)
         self.timestep_embedder = TimestepEmbedding(in_channels=256, time_embed_dim=embedding_dim)
-        self.text_embedder = PixArtAlphaTextProjection(pooled_projection_dim, embedding_dim, act_fn="silu")
+        self.text_embedder = PixArtAlphaTextProjection(pooled_projection_dim, embedding_dim)
 
     def forward(self, timestep, pooled_projection):
         timesteps_proj = self.time_proj(timestep)
